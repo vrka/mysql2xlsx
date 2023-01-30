@@ -28,13 +28,14 @@ def main(user, password, hostname, database, output, template, sql):
         name2index = {val: idx for idx, val in enumerate(cur.column_names)}
         name2col = {}
 
-        row_idx = 3
+        row_src = ws[ws.freeze_panes].row if ws.freeze_panes else 2
+        row_idx = row_src + 1
 
         for row in cur.fetchall():
             ws.insert_rows(row_idx)
             for col_idx in range(1, ws.max_column + 1):
-                # copy format from row 2
-                src = ws.cell(2, col_idx)
+                # copy format from row row_src
+                src = ws.cell(row_src, col_idx)
                 dst = ws.cell(row_idx, col_idx)
                 dst._style = copy(src._style)
                 if src.value[0] == "_":
@@ -50,10 +51,10 @@ def main(user, password, hostname, database, output, template, sql):
         # process last row (replace range in formulas)
         for name in name2col:
             col_name = utils.cell.get_column_letter(name2col[name])
-            new_range = workbook.defined_name.DefinedName('data_' + name, localSheetId=wb.sheetnames.index(ws.title),
-                                                          attr_text=f"${col_name}$2:${col_name}${row_idx - 2}")
+            new_range = workbook.defined_name.DefinedName('data_' + name,
+                                                          attr_text=f"{ws.title}!${col_name}${row_src}:${col_name}${row_idx - 2}")
             wb.defined_names.append(new_range)
-        ws.delete_rows(2)
+        ws.delete_rows(row_src)
     else:
         wb = Workbook()
         ws = wb.worksheets[0]
