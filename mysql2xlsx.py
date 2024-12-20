@@ -5,6 +5,10 @@ from copy import copy
 import click
 import mysql.connector
 from openpyxl import Workbook, load_workbook, utils, workbook
+from openpyxl import __version__ as openpyxl_version
+from packaging import version
+
+VERSION = "1.2"
 
 
 @click.command()
@@ -15,6 +19,9 @@ from openpyxl import Workbook, load_workbook, utils, workbook
 @click.option('-o', '--output', type=click.Path(writable=True), default='output.xlsx', help="xlsx filename")
 @click.option('-t', '--template', type=click.Path(exists=True, readable=True), help="xlsx template filename")
 @click.argument('sql')
+@click.version_option(VERSION)
+@click.version_option(VERSION, '--version-simple', message="%(version)s",
+                      help="Show the version number (only) and exit")
 def main(user, password, hostname, database, output, template, sql):
     """Saves output of SQL command as XLSX file, optionally formatted as template file"""
 
@@ -44,16 +51,20 @@ def main(user, password, hostname, database, output, template, sql):
             row_idx += 1
         rules = list(ws.conditional_formatting._cf_rules)
         for cf_rule in rules:
-            rng = copy(cf_rule.cells.ranges[0])
+            rng = copy(list(cf_rule.cells.ranges)[0])
             rng.max_row = row_idx - 1
             for rule in ws.conditional_formatting[cf_rule]:
                 ws.conditional_formatting.add(str(rng), rule)
         # process last row (replace range in formulas)
         for name in name2col:
             col_name = utils.cell.get_column_letter(name2col[name])
-            new_range = workbook.defined_name.DefinedName('data_' + name,
-                                                          attr_text=f"{ws.title}!${col_name}${row_src}:${col_name}${row_idx - 2}")
-            wb.defined_names.append(new_range)
+            named_range = f"{ws.title}!${col_name}${row_src}:${col_name}${row_idx - 2}"
+            new_range = workbook.defined_name.DefinedName('data_' + name, attr_text=named_range)
+            if version.parse(openpyxl_version) < version.parse("3.1.0"):
+                wb.defined_names.append(new_range)
+            else:
+                wb.defined_names[f"data_{name}"] = new_range
+
         ws.delete_rows(row_src)
     else:
         wb = Workbook()
