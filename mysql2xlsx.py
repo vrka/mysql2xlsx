@@ -8,28 +8,35 @@ from openpyxl import Workbook, load_workbook, utils, workbook
 from openpyxl import __version__ as openpyxl_version
 from packaging import version
 
-VERSION = "1.2"
+VERSION = "1.3"
 
 
 @click.command()
 @click.option('-u', '--user', help="username")
 @click.option('-p', '--password', help="password")
-@click.option('-h', '--hostname', help="MySql server hostnamme")
+@click.option('-h', '--hostname', help="MySql server hostname")
 @click.option('-d', '--database', help="database name")
 @click.option('-o', '--output', type=click.Path(writable=True), default='output.xlsx', help="xlsx filename")
 @click.option('-t', '--template', type=click.Path(exists=True, readable=True), help="xlsx template filename")
-@click.argument('sql')
+@click.option('-f', '--file', type=click.Path(exists=True, readable=True), help="SQL file path")
+@click.argument('sql', required=False)
 @click.version_option(VERSION)
 @click.version_option(VERSION, '--version-simple', message="%(version)s",
                       help="Show the version number (only) and exit")
-def main(user, password, hostname, database, output, template, sql):
+def main(user, password, hostname, database, output, template, file, sql):
     """Saves output of SQL command as XLSX file, optionally formatted as template file"""
+    if file:
+        with open(file, 'r') as f:
+            sql = f.read()
+
+    if not sql:
+        raise click.UsageError("You must provide an SQL command or specify a file using -f/--file.")
 
     db = mysql.connector.connect(user=user, password=password, host=hostname, database=database)
     cur = db.cursor()
     cur.execute(sql)
 
-    if (template):
+    if template:
         wb = load_workbook(template)
         ws = wb.worksheets[0]
         name2index = {val: idx for idx, val in enumerate(cur.column_names)}
