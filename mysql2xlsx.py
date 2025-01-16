@@ -8,13 +8,14 @@ from openpyxl import Workbook, load_workbook, utils, workbook
 from openpyxl import __version__ as openpyxl_version
 from packaging import version
 
-VERSION = "1.3"
+VERSION = "1.4"
 
 
 @click.command()
 @click.option('-u', '--user', help="username")
 @click.option('-p', '--password', help="password")
 @click.option('-h', '--hostname', help="MySql server hostname")
+@click.option('-P', '--port', default=3306, help="MySql server port")
 @click.option('-d', '--database', help="database name")
 @click.option('-o', '--output', type=click.Path(writable=True), default='output.xlsx', help="xlsx filename")
 @click.option('-t', '--template', type=click.Path(exists=True, readable=True), help="xlsx template filename")
@@ -23,7 +24,7 @@ VERSION = "1.3"
 @click.version_option(VERSION)
 @click.version_option(VERSION, '--version-simple', message="%(version)s",
                       help="Show the version number (only) and exit")
-def main(user, password, hostname, database, output, template, file, sql):
+def main(user, password, hostname, port, database, output, template, file, sql):
     """Saves output of SQL command as XLSX file, optionally formatted as template file"""
     if file:
         with open(file, 'r') as f:
@@ -32,7 +33,7 @@ def main(user, password, hostname, database, output, template, file, sql):
     if not sql:
         raise click.UsageError("You must provide an SQL command or specify a file using -f/--file.")
 
-    db = mysql.connector.connect(user=user, password=password, host=hostname, database=database)
+    db = mysql.connector.connect(user=user, password=password, host=hostname, port=port, database=database)
     cur = db.cursor()
     cur.execute(sql)
 
