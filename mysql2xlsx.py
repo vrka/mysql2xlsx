@@ -8,7 +8,15 @@ from openpyxl import Workbook, load_workbook, utils, workbook
 from openpyxl import __version__ as openpyxl_version
 from packaging import version
 
-VERSION = "1.4"
+VERSION = "1.5"
+
+def set_column_widths(worksheet):
+    """Adjust column widths based on the maximum length of the content in each column."""
+    for column_cells in worksheet.columns:
+        # Calculate the maximum length of the contents in each column
+        length = max(len(str(cell.value)) if cell.value is not None else 0 for cell in column_cells)
+        worksheet.column_dimensions[column_cells[0].column_letter].width = length + 2  # Add padding
+
 
 
 @click.command()
@@ -82,6 +90,7 @@ def main(user, password, hostname, port, database, output, template, file, sql):
         for row in cur.fetchall():
             ws.append(row)
 
+    set_column_widths(ws)
     wb.save(output)
 
 
